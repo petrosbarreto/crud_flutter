@@ -7,116 +7,209 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'CRUD Basico Flutter',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const TodoPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class TodoItem {
+  final int id;
+  String titulo;
+  String descricao;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  TodoItem({
+    required this.id,
+    required this.titulo,
+    required this.descricao,
+  });
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class TodoPage extends StatefulWidget {
+  const TodoPage({super.key});
 
-  void _incrementCounter() {
+  @override
+  State<TodoPage> createState() => _TodoPageState();
+}
+
+class _TodoPageState extends State<TodoPage> {
+  final List<TodoItem> _tarefas = [];
+  int _proximoId = 1;
+
+  final TextEditingController _tituloController = TextEditingController();
+  final TextEditingController _descricaoController = TextEditingController();
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descricaoController.dispose();
+    super.dispose();
+  }
+
+  // CREATE
+  void _criarTarefa() {
+    final titulo = _tituloController.text.trim();
+    final descricao = _descricaoController.text.trim();
+
+    if (titulo.isEmpty) return;
+
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _tarefas.add(
+        TodoItem(
+          id: _proximoId++,
+          titulo: titulo,
+          descricao: descricao,
+        ),
+      );
     });
+
+    _tituloController.clear();
+    _descricaoController.clear();
+    Navigator.pop(context);
+  }
+
+  // UPDATE
+  void _atualizarTarefa(TodoItem item) {
+    final titulo = _tituloController.text.trim();
+    final descricao = _descricaoController.text.trim();
+
+    if (titulo.isEmpty) return;
+
+    setState(() {
+      item.titulo = titulo;
+      item.descricao = descricao;
+    });
+
+    _tituloController.clear();
+    _descricaoController.clear();
+    Navigator.pop(context);
+  }
+
+  // DELETE
+  void _deletarTarefa(int id) {
+    setState(() {
+      _tarefas.removeWhere((tarefa) => tarefa.id == id);
+    });
+  }
+
+  void _abrirFormulario({TodoItem? itemParaEditar}) {
+    if (itemParaEditar != null) {
+      _tituloController.text = itemParaEditar.titulo;
+      _descricaoController.text = itemParaEditar.descricao;
+    } else {
+      _tituloController.clear();
+      _descricaoController.clear();
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                itemParaEditar == null ? 'Nova tarefa' : 'Editar tarefa',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _tituloController,
+                decoration: const InputDecoration(
+                  labelText: 'Titulo',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _descricaoController,
+                decoration: const InputDecoration(
+                  labelText: 'Descricao',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (itemParaEditar == null) {
+                      _criarTarefa();
+                    } else {
+                      _atualizarTarefa(itemParaEditar);
+                    }
+                  },
+                  child: Text(itemParaEditar == null ? 'Salvar' : 'Atualizar'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('CRUD de Tarefas'),
+        centerTitle: true,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: _tarefas.isEmpty
+          ? const Center(
+              child: Text('Nenhuma tarefa cadastrada ainda.'),
+            )
+          : ListView.builder(
+              itemCount: _tarefas.length,
+              itemBuilder: (context, index) {
+                final item = _tarefas[index];
+                return Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: ListTile(
+                    title: Text(item.titulo),
+                    subtitle: Text(item.descricao.isEmpty
+                        ? 'Sem descricao'
+                        : item.descricao),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () =>
+                              _abrirFormulario(itemParaEditar: item),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deletarTarefa(item.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
+        onPressed: () => _abrirFormulario(),
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
